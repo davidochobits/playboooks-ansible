@@ -1,0 +1,41 @@
+---
+- hosts: GlusterFS
+  remote_user: root
+
+  tasks:
+  - name: Creamos el volume group usando /dev/sdb
+    parted:
+      device: /dev/sdb
+      number: 1
+      flags: [lvm]
+      state: present
+      part_end: 5GB
+  - name: Creamos el grupo
+    lvg:
+      vg: vg_data
+      pvs: /dev/sdb1
+  - name: Revisamos dependencias de lvm2
+    package:
+      name: lvm2
+      state: present
+  - name: Creamos el LV
+    lvol:
+      vg: vg_data
+      lv: lv_data
+      size: 100%VG
+      force: yes
+  - name: Creamos el punto de montaje /data/glusterfs/volume1
+    file:
+      path: /data/glusterfs/volume1
+      state: directory
+      mode: '0755'
+  - name: Formateamos en XFS
+    filesystem:
+      fstype: xfs
+      dev: /dev/vg_data/lv_data
+  - name: Montamos el LV en /data/glusterfs/volume1
+    mount:
+      path: /data/glusterfs/volume1
+      src: /dev/vg_data/lv_data
+      fstype: xfs
+      state: mounted
